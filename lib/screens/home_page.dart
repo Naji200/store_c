@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:naji_app/screens/add_ithem.dart';
 import 'package:naji_app/screens/itemdetails.dart';
+import 'package:naji_app/services/cart_service.dart';
+
 import 'bar.dart';
 
 class HomePage extends StatefulWidget {
@@ -16,11 +18,23 @@ class _HomePageState extends State<HomePage> {
   List<Map<String, dynamic>> _clothingItems = [];
   int _currentIndex = 0;
   bool _isLoading = true;
+  Map<String, dynamic>? itemData;
 
   @override
   void initState() {
     super.initState();
     _fetchClothingItems();
+  }
+
+  // ajout l'article au panier
+  void _addToCart(BuildContext context) {
+    if (itemData != null) {
+      CartService.addItem(itemData!); // Ajouter l'article au panier
+      ScaffoldMessenger.of(context).showSnackBar(
+        // Afficher un message de confirmation que l'article a été ajouté
+        const SnackBar(content: Text('Article ajouté au panier!')),
+      );
+    }
 
     // Add a listener to update items in real-time
     _database.child('clothingItems').onChildAdded.listen((event) {
@@ -156,18 +170,34 @@ class _HomePageState extends State<HomePage> {
                       },
                       child: Card(
                         margin: const EdgeInsets.all(8.0),
-                        child: ListTile(
-                          leading: Image.network(
-                            item['imageUrl'] ?? '',
-                            fit: BoxFit.cover,
-                            width: 50,
-                            height: 50,
-                            errorBuilder: (context, error, stackTrace) =>
-                                const Icon(Icons.image_not_supported),
-                          ),
-                          title: Text(item['title'] ?? 'No Title'),
-                          subtitle: Text('Taille: ${item['size'] ?? 'N/A'}\n'
-                              'Prix: ${item['price'] ?? 'N/A'} MAD'),
+                        child: Stack(
+                          children: [
+                            ListTile(
+                              leading: Image.network(
+                                item['imageUrl'] ?? '',
+                                fit: BoxFit.cover,
+                                width: 50,
+                                height: 50,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    const Icon(Icons.image_not_supported),
+                              ),
+                              title: Text(item['title'] ?? 'No Title'),
+                              subtitle:
+                                  Text('Taille: ${item['size'] ?? 'N/A'}\n'
+                                      'Prix: ${item['price'] ?? 'N/A'} MAD'),
+                            ),
+                            Positioned(
+                              bottom: 8,
+                              right: 8,
+                              child: IconButton(
+                                onPressed: () =>
+                                    _addToCart(context), // Add to cart action
+                                icon: const Icon(Icons.shopping_cart,
+                                    color: Colors.blue),
+                                tooltip: 'Ajouter au panier',
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     );
