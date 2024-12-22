@@ -111,8 +111,8 @@ This project is licensed under the MIT License. You are free to use, modify, and
 
 ## Contact
 For any queries or feedback, please contact:
-- **Email**: [your-email@example.com]
-- **GitHub**: [your-github-profile-link]
+- **Email**: najielalja2002@gmail.com
+- **GitHub**: https://github.com/Naji200
 ![WhatsApp Image 2024-12-22 à 18 49 42_02990e58](https://github.com/user-attachments/assets/f087c40a-a4c3-478f-b27e-72b551302b68)
 
 ![WhatsApp Image 2024-12-22 à 18 49 42_45ac1ee7](https://github.com/user-attachments/assets/bc65116c-6631-4c09-9e7a-90cc3c53fd52)
