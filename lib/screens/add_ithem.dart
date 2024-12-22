@@ -23,6 +23,45 @@ class _ItemDetailState extends State<ItemDetail> {
 
   final DatabaseReference _database = FirebaseDatabase.instance.ref();
 
+  // Variables for categories
+  List<String> _categories = [];
+  String? _selectedCategory;
+  bool _isLoadingCategories = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchCategories();
+  }
+
+  // Fetch categories from Firebase
+  void _fetchCategories() async {
+    try {
+      final snapshot = await _database.child('categories/clothing').get();
+
+      if (snapshot.exists) {
+        final List<dynamic> categoriesList = snapshot.value as List<dynamic>;
+
+        setState(() {
+          _categories =
+              categoriesList.map((category) => category.toString()).toList();
+          _isLoadingCategories = false;
+        });
+      } else {
+        setState(() {
+          _categories = [];
+          _isLoadingCategories = false;
+        });
+      }
+    } catch (e) {
+      print("Erreur lors de la récupération des catégories : $e");
+      setState(() {
+        _categories = [];
+        _isLoadingCategories = false;
+      });
+    }
+  }
+
   @override
   void dispose() {
     _titleController.dispose();
@@ -101,13 +140,28 @@ class _ItemDetailState extends State<ItemDetail> {
               const SizedBox(height: 16),
 
               // Catégorie
-              TextFormField(
-                controller: _categoryController,
-                decoration: const InputDecoration(labelText: 'Catégorie'),
-                validator: (value) => value == null || value.isEmpty
-                    ? 'Veuillez entrer une catégorie'
-                    : null,
-              ),
+              // Catégorie (Dropdown dynamique)
+              _isLoadingCategories
+                  ? const Center(child: CircularProgressIndicator())
+                  : DropdownButtonFormField<String>(
+                      decoration: const InputDecoration(labelText: 'Catégorie'),
+                      value: _selectedCategory,
+                      hint: const Text('Sélectionnez une catégorie'),
+                      items: _categories
+                          .map((category) => DropdownMenuItem(
+                                value: category,
+                                child: Text(category),
+                              ))
+                          .toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedCategory = value;
+                        });
+                      },
+                      validator: (value) => value == null
+                          ? 'Veuillez sélectionner une catégorie'
+                          : null,
+                    ),
               const SizedBox(height: 16),
 
               // Taille
