@@ -1,0 +1,49 @@
+{
+  "project_info": {
+    "project_number": "1030596549497",
+    "firebase_url": "https://storeai-57540-default-rtdb.firebaseio.com",
+    "project_id": "storeai-57540",
+    "storage_bucket": "storeai-57540.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1030596549497:android:fec9adef42d8d65101eda8",
+        "android_client_info": {
+          "package_name": "com.naji.store_ai"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyANCoVs8oDkvhL1iRKNahG5dxn7dfTankw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1030596549497:android:d61ad86f7b7af1e501eda8",
+        "android_client_info": {
+          "package_name": "naji.com.naji_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyANCoVs8oDkvhL1iRKNahG5dxn7dfTankw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
