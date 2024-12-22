@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'dart:io';
+import 'package:firebase_database/firebase_database.dart';
 
 class ItemDetail extends StatefulWidget {
   const ItemDetail({super.key});
@@ -16,8 +14,14 @@ class _ItemDetailState extends State<ItemDetail> {
   final TextEditingController _sizeController = TextEditingController();
   final TextEditingController _brandController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
+  final TextEditingController _imageUrlController =
+      TextEditingController(); // New controller for image URL
+  final TextEditingController _categoryController =
+      TextEditingController(); // New controller for category
+  final TextEditingController _descriptionController =
+      TextEditingController(); // New controller for description
 
-  File? _selectedImage;
+  final DatabaseReference _database = FirebaseDatabase.instance.ref();
 
   @override
   void dispose() {
@@ -25,67 +29,55 @@ class _ItemDetailState extends State<ItemDetail> {
     _sizeController.dispose();
     _brandController.dispose();
     _priceController.dispose();
+    _imageUrlController.dispose();
+    _categoryController.dispose();
+    _descriptionController.dispose();
     super.dispose();
   }
 
-  /// Fonction pour sélectionner une image
-  Future<void> _pickImage() async {
-    try {
-      final pickedFile =
-          await ImagePicker().pickImage(source: ImageSource.gallery);
-
-      if (pickedFile != null) {
-        setState(() {
-          _selectedImage = File(pickedFile.path);
-        });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Image sélectionnée avec succès !")),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Aucune image sélectionnée.")),
-        );
-      }
-    } catch (e) {
-      print("Erreur lors de la sélection de l'image : $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text("Erreur lors de la sélection de l'image.")),
-      );
-    }
-  }
-
-  /// Fonction pour ajouter un vêtement dans Firestore
+  /// Fonction pour ajouter un vêtement dans Firebase Realtime Database
   Future<void> _addItem() async {
     if (_formKey.currentState!.validate()) {
       try {
-        await FirebaseFirestore.instance.collection('clothingItems').add({
+        // Générer une nouvelle clé unique pour l'article
+        DatabaseReference newItemRef = _database.child('clothingItems').push();
+
+        // Ajouter l'article à la base de données
+        await newItemRef.set({
           'title': _titleController.text,
           'size': _sizeController.text,
           'brand': _brandController.text,
           'price': double.parse(_priceController.text),
-          'imageUrl':
-              '', // Remplacez par la logique de téléchargement d'image si nécessaire
-          'timestamp': FieldValue.serverTimestamp(),
+          'imageUrl': _imageUrlController.text,
+          'category': _categoryController.text,
+          'description': _descriptionController.text,
+          'timestamp': ServerValue.timestamp,
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Vêtement ajouté avec succès !")),
+          const SnackBar(content: Text("Vêtement ajouté avec succès !")),
         );
 
         // Réinitialiser le formulaire
         _formKey.currentState!.reset();
-        setState(() {
-          _selectedImage = null;
-        });
+        _clearControllers();
       } catch (e) {
         print("Erreur lors de l'ajout : $e");
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Erreur lors de l'ajout du vêtement.")),
+          SnackBar(content: Text("Erreur lors de l'ajout du vêtement : $e")),
         );
       }
     }
+  }
+
+  void _clearControllers() {
+    _titleController.clear();
+    _sizeController.clear();
+    _brandController.clear();
+    _priceController.clear();
+    _imageUrlController.clear();
+    _categoryController.clear();
+    _descriptionController.clear();
   }
 
   @override
@@ -104,6 +96,16 @@ class _ItemDetailState extends State<ItemDetail> {
                 decoration: const InputDecoration(labelText: 'Titre'),
                 validator: (value) => value == null || value.isEmpty
                     ? 'Veuillez entrer un titre'
+                    : null,
+              ),
+              const SizedBox(height: 16),
+
+              // Catégorie
+              TextFormField(
+                controller: _categoryController,
+                decoration: const InputDecoration(labelText: 'Catégorie'),
+                validator: (value) => value == null || value.isEmpty
+                    ? 'Veuillez entrer une catégorie'
                     : null,
               ),
               const SizedBox(height: 16),
@@ -143,27 +145,41 @@ class _ItemDetailState extends State<ItemDetail> {
               ),
               const SizedBox(height: 16),
 
-              // Bouton pour sélectionner une image
-              ElevatedButton(
-                onPressed: _pickImage,
-                child: const Text('Sélectionner une image'),
+              // URL de l'image
+              TextFormField(
+                controller: _imageUrlController,
+                decoration: const InputDecoration(labelText: 'URL de l\'image'),
+                validator: (value) {
+                  if (value == null || value.isEmpty)
+                    return 'Veuillez entrer une URL d\'image';
+                  // Optional: Add URL validation
+                  if (!value.startsWith('http') && !value.startsWith('https')) {
+                    return 'Entrez une URL valide';
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 16),
-
-              // Image sélectionnée
-              if (_selectedImage != null)
-                Column(
-                  children: [
-                    Image.file(_selectedImage!, width: 150, height: 150),
-                  ],
-                ),
-              const SizedBox(height: 20),
 
               // Bouton pour valider l'ajout
               ElevatedButton(
                 onPressed: _addItem,
                 child: const Text('Valider'),
               ),
+
+              // Aperçu de l'image si une URL est saisie
+              if (_imageUrlController.text.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 16.0),
+                  child: Image.network(
+                    _imageUrlController.text,
+                    width: 200,
+                    height: 200,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) =>
+                        const Text('Impossible de charger l\'image'),
+                  ),
+                ),
             ],
           ),
         ),

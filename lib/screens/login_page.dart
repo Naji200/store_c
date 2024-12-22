@@ -1,96 +1,126 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart'; // Make sure to add this import
 import 'home_page.dart';
 
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+  const LoginPage({Key? key}) : super(key: key);
 
   @override
   _LoginPageState createState() => _LoginPageState();
 }
 
 class _LoginPageState extends State<LoginPage> {
-  final _formKey = GlobalKey<FormState>(); // Clé pour valider le formulaire
-  final _emailController = TextEditingController(); // Contrôleur pour l'email
-  final _passwordController =
-      TextEditingController(); // Contrôleur pour le mot de passe
-  bool _isLoading = false; // Variable pour gérer l'état de chargement
+  final _formKey = GlobalKey<FormState>();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    // Vérifier si l'utilisateur est déjà connecté
-    _checkIfUserIsLoggedIn();
+    // Use a post-frame callback to check login status
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkIfUserIsLoggedIn();
+    });
   }
 
-  // Fonction pour vérifier si l'utilisateur est déjà connecté
+  // Improved method to check user login status
   Future<void> _checkIfUserIsLoggedIn() async {
-    final user = FirebaseAuth
-        .instance.currentUser; // Récupérer l'utilisateur actuellement connecté
-    if (user != null) {
-      // Si l'utilisateur est connecté
-      // Rediriger directement vers la page d'accueil
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const HomePage()),
+    try {
+      // Ensure Firebase is initialized
+      await Firebase.initializeApp();
+
+      final user = FirebaseAuth.instance.currentUser;
+      print('Current user: $user'); // Debugging print
+
+      if (user != null) {
+        // Use a safe navigation method
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const HomePage()),
+        );
+      }
+    } catch (e) {
+      print('Error checking login status: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error checking login status: $e')),
       );
     }
   }
 
-  // Fonction pour effectuer la connexion
+  // Improved sign-in method with comprehensive error handling
   Future<void> _signIn() async {
-    if (_formKey.currentState!.validate()) {
-      // Vérifier la validité du formulaire
-      setState(() =>
-          _isLoading = true); // Afficher le chargement pendant la connexion
+    // Validate form
+    if (!_formKey.currentState!.validate()) return;
 
-      try {
-        print(
-            'Tentative de connexion avec: ${_emailController.text}'); // Message de débogage
+    // Set loading state
+    setState(() => _isLoading = true);
 
-        // Connexion de l'utilisateur avec son email et son mot de passe
-        final userCredential =
-            await FirebaseAuth.instance.signInWithEmailAndPassword(
-          email: _emailController.text.trim(),
-          password: _passwordController.text.trim(),
+    try {
+      // Trim email and password
+      final email = _emailController.text.trim();
+      final password = _passwordController.text.trim();
+
+      // Detailed logging
+      print('Attempting login with email: $email');
+
+      // Attempt sign in
+      final userCredential =
+          await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      // Log successful login
+      print('Login successful: ${userCredential.user?.uid}');
+
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Connexion réussie!')),
+      );
+
+      // Navigate to homepage
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const HomePage()),
         );
+      }
+    } on FirebaseAuthException catch (e) {
+      // Detailed error handling
+      print('Firebase Auth Error: ${e.code}');
 
-        print(
-            'Connexion réussie: ${userCredential.user?.uid}'); // Message de débogage pour la réussite
+      String errorMessage;
+      switch (e.code) {
+        case 'user-not-found':
+          errorMessage = 'Aucun utilisateur trouvé avec cet email.';
+          break;
+        case 'wrong-password':
+          errorMessage = 'Mot de passe incorrect.';
+          break;
+        case 'invalid-email':
+          errorMessage = 'Format d\'email invalide.';
+          break;
+        case 'user-disabled':
+          errorMessage = 'Ce compte a été désactivé.';
+          break;
+        default:
+          errorMessage = 'Erreur de connexion: ${e.message}';
+      }
 
-        // Affichage d'un message de succès
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Connexion réussie!')),
-        );
-
-        // Rediriger vers la page d'accueil après une connexion réussie
-        if (mounted) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const HomePage()),
-          );
-        }
-      } on FirebaseAuthException catch (e) {
-        print(
-            'Erreur Firebase Auth: ${e.code}'); // Message de débogage pour l'erreur
-        String message;
-        if (e.code == 'user-not-found') {
-          // Cas où l'utilisateur n'est pas trouvé
-          message = 'Aucun utilisateur trouvé avec cet email.';
-        } else if (e.code == 'wrong-password') {
-          // Cas où le mot de passe est incorrect
-          message = 'Mot de passe incorrect.';
-        } else {
-          message = 'Erreur de connexion: ${e.code}'; // Autres erreurs
-        }
-
-        // Affichage du message d'erreur à l'utilisateur
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(message)),
-        );
-      } finally {
-        setState(() => _isLoading =
-            false); // Masquer le chargement après la tentative de connexion
+      // Show error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(errorMessage)),
+      );
+    } catch (e) {
+      // Catch any other unexpected errors
+      print('Unexpected error during login: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Une erreur inattendue s\'est produite: $e')),
+      );
+    } finally {
+      // Always reset loading state
+      if (mounted) {
+        setState(() => _isLoading = false);
       }
     }
   }
@@ -99,56 +129,65 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Syna World'), // Titre de la barre d'applications
+        title: const Text('Syna World'),
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0), // Marge autour du formulaire
+        padding: const EdgeInsets.all(16.0),
         child: Form(
-          key: _formKey, // Clé pour le formulaire
+          key: _formKey,
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center, // Centrer les éléments
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Champ pour l'email
+              // Email TextField
               TextFormField(
-                controller: _emailController, // Contrôleur pour l'email
+                controller: _emailController,
                 decoration: const InputDecoration(
-                  labelText: 'Email', // Label du champ
-                  border: OutlineInputBorder(), // Bordure du champ
+                  labelText: 'Email',
+                  border: OutlineInputBorder(),
                 ),
                 validator: (value) {
-                  // Validation de l'email
                   if (value == null || value.isEmpty) {
-                    return 'Veuillez entrer votre email'; // Message d'erreur si vide
+                    return 'Veuillez entrer votre email';
+                  }
+                  // Optional: Add email format validation
+                  if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                      .hasMatch(value)) {
+                    return 'Veuillez entrer un email valide';
                   }
                   return null;
                 },
               ),
 
-              const SizedBox(height: 16), // Espacement entre les champs
-              // Champ pour le mot de passe
+              const SizedBox(height: 16),
+
+              // Password TextField
               TextFormField(
-                controller:
-                    _passwordController, // Contrôleur pour le mot de passe
-                obscureText: true, // Masquer le mot de passe
+                controller: _passwordController,
+                obscureText: true,
                 decoration: const InputDecoration(
-                  labelText: 'Mot de passe', // Label du champ
-                  border: OutlineInputBorder(), // Bordure du champ
+                  labelText: 'Mot de passe',
+                  border: OutlineInputBorder(),
                 ),
                 validator: (value) {
-                  // Validation du mot de passe
                   if (value == null || value.isEmpty) {
-                    return 'Veuillez entrer votre mot de passe'; // Message d'erreur si vide
+                    return 'Veuillez entrer votre mot de passe';
+                  }
+                  // Optional: Add password strength validation
+                  if (value.length < 6) {
+                    return 'Le mot de passe doit contenir au moins 6 caractères';
                   }
                   return null;
                 },
               ),
-              const SizedBox(height: 24), // Espacement avant le bouton
-              // Bouton de connexion ou indicateur de chargement
+
+              const SizedBox(height: 24),
+
+              // Login Button or Loading Indicator
               _isLoading
-                  ? const CircularProgressIndicator() // Afficher un cercle de chargement
+                  ? const CircularProgressIndicator()
                   : ElevatedButton(
-                      onPressed: _signIn, // Appeler la fonction de connexion
-                      child: const Text('Se connecter'), // Texte du bouton
+                      onPressed: _signIn,
+                      child: const Text('Se connecter'),
                     ),
             ],
           ),
@@ -159,8 +198,8 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   void dispose() {
-    _emailController.dispose(); // Libérer le contrôleur de l'email
-    _passwordController.dispose(); // Libérer le contrôleur du mot de passe
+    _emailController.dispose();
+    _passwordController.dispose();
     super.dispose();
   }
 }
