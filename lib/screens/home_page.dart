@@ -26,54 +26,11 @@ class _HomePageState extends State<HomePage> {
     _fetchClothingItems();
   }
 
-  // ajout l'article au panier
-  void _addToCart(BuildContext context) {
-    if (itemData != null) {
-      CartService.addItem(itemData!); // Ajouter l'article au panier
-      ScaffoldMessenger.of(context).showSnackBar(
-        // Afficher un message de confirmation que l'article a été ajouté
-        const SnackBar(content: Text('Article ajouté au panier!')),
-      );
-    }
-
-    // Add a listener to update items in real-time
-    _database.child('clothingItems').onChildAdded.listen((event) {
-      if (mounted) {
-        setState(() {
-          final newItem =
-              Map<String, dynamic>.from(event.snapshot.value as Map);
-          newItem['id'] = event.snapshot.key;
-          _clothingItems.add(newItem);
-        });
-      }
-    });
-
-    // Listener for item changes
-    _database.child('clothingItems').onChildChanged.listen((event) {
-      if (mounted) {
-        setState(() {
-          final changedItem =
-              Map<String, dynamic>.from(event.snapshot.value as Map);
-          changedItem['id'] = event.snapshot.key;
-
-          int index = _clothingItems
-              .indexWhere((item) => item['id'] == event.snapshot.key);
-          if (index != -1) {
-            _clothingItems[index] = changedItem;
-          }
-        });
-      }
-    });
-
-    // Listener for item removals
-    _database.child('clothingItems').onChildRemoved.listen((event) {
-      if (mounted) {
-        setState(() {
-          _clothingItems
-              .removeWhere((item) => item['id'] == event.snapshot.key);
-        });
-      }
-    });
+  void _addToCart(BuildContext context, Map<String, dynamic> item) {
+    CartService.addItem(item);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Article ajouté au panier!')),
+    );
   }
 
   void _fetchClothingItems() async {
@@ -94,7 +51,6 @@ class _HomePageState extends State<HomePage> {
               ...Map<String, dynamic>.from(entry.value as Map),
             };
           }).toList();
-
           _isLoading = false;
         });
       } else {
@@ -116,20 +72,13 @@ class _HomePageState extends State<HomePage> {
     setState(() {
       _currentIndex = index;
     });
-
-    // Gérer la navigation si nécessaire
-    if (index == 1) {
-      // Naviguer vers la page Panier
-    } else if (index == 2) {
-      // Naviguer vers la page Profil
-    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Life of Syn'),
+        title: const Text('Naji App', style: TextStyle(fontSize: 24)),
         centerTitle: true,
         actions: [
           IconButton(
@@ -145,7 +94,11 @@ class _HomePageState extends State<HomePage> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text("Aucun article disponible"),
+                      const Text(
+                        "Aucun article disponible",
+                        style: TextStyle(fontSize: 18),
+                      ),
+                      const SizedBox(height: 10),
                       ElevatedButton(
                         onPressed: _fetchClothingItems,
                         child: const Text("Actualiser"),
@@ -153,13 +106,19 @@ class _HomePageState extends State<HomePage> {
                     ],
                   ),
                 )
-              : ListView.builder(
+              : GridView.builder(
+                  padding: const EdgeInsets.all(10.0),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 10.0,
+                    mainAxisSpacing: 10.0,
+                    childAspectRatio: 0.8,
+                  ),
                   itemCount: _clothingItems.length,
                   itemBuilder: (context, index) {
                     final item = _clothingItems[index];
                     return GestureDetector(
                       onTap: () {
-                        print('Item clicked: ${item['title']}');
                         Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -169,32 +128,67 @@ class _HomePageState extends State<HomePage> {
                         );
                       },
                       child: Card(
-                        margin: const EdgeInsets.all(8.0),
-                        child: Stack(
+                        elevation: 4.0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12.0),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            ListTile(
-                              leading: Image.network(
-                                item['imageUrl'] ?? '',
-                                fit: BoxFit.cover,
-                                width: 50,
-                                height: 50,
-                                errorBuilder: (context, error, stackTrace) =>
-                                    const Icon(Icons.image_not_supported),
+                            Expanded(
+                              child: ClipRRect(
+                                borderRadius: const BorderRadius.only(
+                                  topLeft: Radius.circular(12.0),
+                                  topRight: Radius.circular(12.0),
+                                ),
+                                child: Image.network(
+                                  item['imageUrl'] ?? '',
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      Container(
+                                    color: Colors.grey[300],
+                                    child: const Icon(
+                                      Icons.image_not_supported,
+                                      size: 50,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                ),
                               ),
-                              title: Text(item['title'] ?? 'No Title'),
-                              subtitle:
-                                  Text('Taille: ${item['size'] ?? 'N/A'}\n'
-                                      'Prix: ${item['price'] ?? 'N/A'} MAD'),
                             ),
-                            Positioned(
-                              bottom: 8,
-                              right: 8,
+                            Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    item['title'] ?? 'No Title',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Prix: ${item['price']} MAD',
+                                    style: const TextStyle(
+                                      color: Colors.blueGrey,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Align(
+                              alignment: Alignment.bottomRight,
                               child: IconButton(
-                                onPressed: () =>
-                                    _addToCart(context), // Add to cart action
-                                icon: const Icon(Icons.shopping_cart,
-                                    color: Colors.blue),
-                                tooltip: 'Ajouter au panier',
+                                onPressed: () => _addToCart(context, item),
+                                icon: const Icon(
+                                  Icons.add_shopping_cart,
+                                  color: Colors.blue,
+                                ),
                               ),
                             ),
                           ],
@@ -212,17 +206,10 @@ class _HomePageState extends State<HomePage> {
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => const ItemDetail()),
-          ).then((_) =>
-              _fetchClothingItems()); // Refresh after returning from add item page
+          ).then((_) => _fetchClothingItems());
         },
         child: const Icon(Icons.add),
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    // Optional: Cancel any listeners if needed
-    super.dispose();
   }
 }

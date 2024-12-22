@@ -11,35 +11,29 @@ class ItemDetailPage extends StatefulWidget {
 }
 
 class _ItemDetailPageState extends State<ItemDetailPage> {
-  final DatabaseReference database =
-      FirebaseDatabase.instance.ref(); // Référence à la bd Firebase
-  Map<String, dynamic>? itemData; // stocker les données de l'article
+  final DatabaseReference database = FirebaseDatabase.instance.ref();
+  Map<String, dynamic>? itemData;
 
   @override
   void initState() {
     super.initState();
-    _loadItemData(); // la fctt pour charger les données de l'articlequand la page est initialisée
+    _loadItemData();
   }
 
-  // charger les données de Firebase
   Future<void> _loadItemData() async {
-    final snapshot = await database
-        .child('clothingItems/${widget.itemId}')
-        .get(); // Récupérer les données de l'article avec l'ID spécifique
+    final snapshot =
+        await database.child('clothingItems/${widget.itemId}').get();
     if (snapshot.exists) {
       setState(() {
-        itemData = Map<String, dynamic>.from(
-            snapshot.value as Map); // Si les données existent, les stocker
+        itemData = Map<String, dynamic>.from(snapshot.value as Map);
       });
     }
   }
 
-  // ajout l'article au panier
   void _addToCart(BuildContext context) {
     if (itemData != null) {
-      CartService.addItem(itemData!); // Ajouter l'article au panier
+      CartService.addItem(itemData!);
       ScaffoldMessenger.of(context).showSnackBar(
-        // Afficher un message de confirmation que l'article a été ajouté
         const SnackBar(content: Text('Article ajouté au panier!')),
       );
     }
@@ -48,7 +42,6 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
   @override
   Widget build(BuildContext context) {
     if (itemData == null) {
-      // Si les données de l'article ne sont pas encore chargées, afficher un indicateur de chargement
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       );
@@ -56,57 +49,97 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(itemData!['title'] ??
-            'Détail article'), // Afficher le titre de l'article
+        title: Text(itemData!['title'] ?? 'Détail article'),
+        centerTitle: true,
       ),
       body: SingleChildScrollView(
-        padding:
-            const EdgeInsets.all(16.0), // Ajouter de l'espace autour du contenu
+        padding: const EdgeInsets.all(16.0),
         child: Column(
-          crossAxisAlignment:
-              CrossAxisAlignment.start, // Alignement du texte à gauche
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Afficher l'image de l'article
-            Image.network(
-              itemData![
-                  'imageUrl'], // Utilisation de l'URL de l'image de l'article
-              fit: BoxFit.cover, // Adapter l'image à l'espace disponible
-              errorBuilder: (context, error, stackTrace) => const Icon(
-                  Icons.image_not_supported,
-                  size:
-                      100), // Afficher une icône si l'image ne peut pas être chargée
+            Center(
+              child: Card(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12.0),
+                ),
+                elevation: 5,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12.0),
+                  child: Image.network(
+                    itemData!['imageUrl'] ?? '',
+                    fit: BoxFit.cover,
+                    height: 200,
+                    width: double.infinity,
+                    errorBuilder: (context, error, stackTrace) => const Icon(
+                      Icons.image_not_supported,
+                      size: 100,
+                      color: Colors.grey,
+                    ),
+                  ),
+                ),
+              ),
             ),
-            const SizedBox(
-                height:
-                    16.0), // Ajouter un espacement entre l'image et le texte
-            // Afficher les informations sur l'article (catégorie, taille, marque, prix)
-            Text('Catégorie: ${itemData!['category']}',
-                style: const TextStyle(fontSize: 18)),
-            const SizedBox(height: 8.0),
-            Text('Taille: ${itemData!['size']}',
-                style: const TextStyle(fontSize: 18)),
-            const SizedBox(height: 8.0),
-            Text('Marque: ${itemData!['brand']}',
-                style: const TextStyle(fontSize: 18)),
-            const SizedBox(height: 8.0),
-            Text('Prix: ${itemData!['price']} MAD',
-                style:
-                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 16.0), // Espacement avant les boutons
-            // Les boutons de retour et d'ajout au panier
+            const SizedBox(height: 16.0),
+            Card(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12.0),
+              ),
+              elevation: 2,
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Catégorie: ${itemData!['category']}',
+                      style: const TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 16.0),
+                    Text(
+                      'Taille: ${itemData!['size']}',
+                      style: const TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 16.0),
+                    Text(
+                      'Marque: ${itemData!['brand']}',
+                      style: const TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 16.0),
+                    Text(
+                      'Prix: ${itemData!['price']} MAD',
+                      style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16.0),
             Row(
-              mainAxisAlignment: MainAxisAlignment
-                  .spaceBetween, // Espacer les boutons de chaque côté
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 ElevatedButton(
-                  onPressed: () =>
-                      Navigator.pop(context), // Retourner à la page précédente
-                  child: const Text('Retour'),
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24.0, vertical: 12.0),
+                  ),
+                  child: const Text('Retour', style: TextStyle(fontSize: 16)),
                 ),
                 ElevatedButton(
-                  onPressed: () =>
-                      _addToCart(context), // Ajouter l'article au panier
-                  child: const Text('Ajouter au panier'),
+                  onPressed: () => _addToCart(context),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24.0, vertical: 12.0),
+                    backgroundColor: Colors.blue,
+                  ),
+                  child: const Text('Ajouter au panier',
+                      style: TextStyle(fontSize: 16)),
                 ),
               ],
             ),

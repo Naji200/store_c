@@ -20,12 +20,20 @@ class _CartScreenState extends State<CartScreen> {
     final total = calculateTotal();
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Panier")),
+      appBar: AppBar(
+        title: const Text("Cart"),
+        backgroundColor: Colors.blue,
+      ),
       body: Column(
         children: [
           Expanded(
             child: cartItems.isEmpty
-                ? const Center(child: Text("Votre panier est vide."))
+                ? const Center(
+                    child: Text(
+                      "Your cart is empty.",
+                      style: TextStyle(fontSize: 18, color: Colors.blueGrey),
+                    ),
+                  )
                 : ListView.builder(
                     itemCount: cartItems.length,
                     itemBuilder: (context, index) {
@@ -33,24 +41,44 @@ class _CartScreenState extends State<CartScreen> {
                       return Card(
                         margin: const EdgeInsets.symmetric(
                             vertical: 8, horizontal: 16),
+                        elevation: 5,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                         child: ListTile(
                           leading: item['imageUrl'] != null &&
                                   item['imageUrl'].isNotEmpty
-                              ? Image.network(
-                                  item['imageUrl'],
-                                  width: 50,
-                                  height: 50,
-                                  fit: BoxFit.cover,
+                              ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Image.network(
+                                    item['imageUrl'],
+                                    width: 50,
+                                    height: 50,
+                                    fit: BoxFit.cover,
+                                  ),
                                 )
                               : Container(
                                   width: 50,
                                   height: 50,
-                                  color: Colors.grey[300],
-                                  child: const Icon(Icons.image_not_supported),
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue[50],
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Icon(
+                                    Icons.image_not_supported,
+                                    color: Colors.blueGrey,
+                                  ),
                                 ),
-                          title: Text(item['title']),
+                          title: Text(
+                            item['title'],
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
                           subtitle: Text(
-                            "${item['price']} MAD\nTaille: ${item['size']}\nMarque: ${item['brand']}",
+                            "${item['price']} MAD\nSize: ${item['size']}\nBrand: ${item['brand']}",
+                            style: const TextStyle(fontSize: 14),
                           ),
                           trailing: IconButton(
                             icon: const Icon(Icons.close, color: Colors.red),
@@ -66,14 +94,34 @@ class _CartScreenState extends State<CartScreen> {
                   ),
           ),
           if (cartItems.isNotEmpty)
-            Padding(
+            Container(
               padding: const EdgeInsets.all(16.0),
-              child: Text(
-                'Total: ${total.toStringAsFixed(2)} MAD',
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
+              decoration: BoxDecoration(
+                color: Colors.blue[50],
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(20),
                 ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Total:',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blueGrey,
+                    ),
+                  ),
+                  Text(
+                    '${total.toStringAsFixed(2)} MAD',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue,
+                    ),
+                  ),
+                ],
               ),
             ),
         ],

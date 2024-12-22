@@ -54,7 +54,7 @@ class _ItemDetailState extends State<ItemDetail> {
         });
       }
     } catch (e) {
-      print("Erreur lors de la récupération des catégories : $e");
+      print("Error while fetching categories: $e");
       setState(() {
         _categories = [];
         _isLoadingCategories = false;
@@ -74,14 +74,14 @@ class _ItemDetailState extends State<ItemDetail> {
     super.dispose();
   }
 
-  /// Fonction pour ajouter un vêtement dans Firebase Realtime Database
+  /// Function to add an item to Firebase Realtime Database
   Future<void> _addItem() async {
     if (_formKey.currentState!.validate()) {
       try {
-        // Générer une nouvelle clé unique pour l'article
+        // Generate a new unique key for the item
         DatabaseReference newItemRef = _database.child('clothingItems').push();
 
-        // Ajouter l'article à la base de données
+        // Add the item to the database
         await newItemRef.set({
           'title': _titleController.text,
           'size': _sizeController.text,
@@ -94,16 +94,16 @@ class _ItemDetailState extends State<ItemDetail> {
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Vêtement ajouté avec succès !")),
+          const SnackBar(content: Text("Item added successfully!")),
         );
 
-        // Réinitialiser le formulaire
+        // Reset the form
         _formKey.currentState!.reset();
         _clearControllers();
       } catch (e) {
-        print("Erreur lors de l'ajout : $e");
+        print("Error while adding item: $e");
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Erreur lors de l'ajout du vêtement : $e")),
+          SnackBar(content: Text("Error adding item: $e")),
         );
       }
     }
@@ -122,31 +122,45 @@ class _ItemDetailState extends State<ItemDetail> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Ajouter un vêtement')),
+      appBar: AppBar(
+        title: const Text('Add Clothing Item'),
+        backgroundColor: Colors.blue,
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
           child: ListView(
             children: [
-              // Titre
+              // Title
               TextFormField(
                 controller: _titleController,
-                decoration: const InputDecoration(labelText: 'Titre'),
+                decoration: InputDecoration(
+                  labelText: 'Title',
+                  labelStyle: TextStyle(color: Colors.blue[800]),
+                  focusedBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: Colors.blue),
+                  ),
+                ),
                 validator: (value) => value == null || value.isEmpty
-                    ? 'Veuillez entrer un titre'
+                    ? 'Please enter a title'
                     : null,
               ),
               const SizedBox(height: 16),
 
-              // Catégorie
-              // Catégorie (Dropdown dynamique)
+              // Category (Dynamic Dropdown)
               _isLoadingCategories
                   ? const Center(child: CircularProgressIndicator())
                   : DropdownButtonFormField<String>(
-                      decoration: const InputDecoration(labelText: 'Catégorie'),
+                      decoration: InputDecoration(
+                        labelText: 'Category',
+                        labelStyle: TextStyle(color: Colors.blue[800]),
+                        focusedBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(color: Colors.blue),
+                        ),
+                      ),
                       value: _selectedCategory,
-                      hint: const Text('Sélectionnez une catégorie'),
+                      hint: const Text('Select a category'),
                       items: _categories
                           .map((category) => DropdownMenuItem(
                                 value: category,
@@ -158,70 +172,101 @@ class _ItemDetailState extends State<ItemDetail> {
                           _selectedCategory = value;
                         });
                       },
-                      validator: (value) => value == null
-                          ? 'Veuillez sélectionner une catégorie'
-                          : null,
+                      validator: (value) =>
+                          value == null ? 'Please select a category' : null,
                     ),
               const SizedBox(height: 16),
 
-              // Taille
+              // Size
               TextFormField(
                 controller: _sizeController,
-                decoration: const InputDecoration(labelText: 'Taille'),
+                decoration: InputDecoration(
+                  labelText: 'Size',
+                  labelStyle: TextStyle(color: Colors.blue[800]),
+                  focusedBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: Colors.blue),
+                  ),
+                ),
                 validator: (value) => value == null || value.isEmpty
-                    ? 'Veuillez entrer une taille'
+                    ? 'Please enter a size'
                     : null,
               ),
               const SizedBox(height: 16),
 
-              // Marque
+              // Brand
               TextFormField(
                 controller: _brandController,
-                decoration: const InputDecoration(labelText: 'Marque'),
+                decoration: InputDecoration(
+                  labelText: 'Brand',
+                  labelStyle: TextStyle(color: Colors.blue[800]),
+                  focusedBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: Colors.blue),
+                  ),
+                ),
                 validator: (value) => value == null || value.isEmpty
-                    ? 'Veuillez entrer une marque'
+                    ? 'Please enter a brand'
                     : null,
               ),
               const SizedBox(height: 16),
 
-              // Prix
+              // Price
               TextFormField(
                 controller: _priceController,
-                decoration: const InputDecoration(labelText: 'Prix'),
+                decoration: InputDecoration(
+                  labelText: 'Price',
+                  labelStyle: TextStyle(color: Colors.blue[800]),
+                  focusedBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: Colors.blue),
+                  ),
+                ),
                 keyboardType: TextInputType.number,
                 validator: (value) {
-                  if (value == null || value.isEmpty)
-                    return 'Veuillez entrer un prix';
-                  if (double.tryParse(value) == null)
-                    return 'Entrez un prix valide';
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // URL de l'image
-              TextFormField(
-                controller: _imageUrlController,
-                decoration: const InputDecoration(labelText: 'URL de l\'image'),
-                validator: (value) {
-                  if (value == null || value.isEmpty)
-                    return 'Veuillez entrer une URL d\'image';
-                  // Optional: Add URL validation
-                  if (!value.startsWith('http') && !value.startsWith('https')) {
-                    return 'Entrez une URL valide';
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter a price';
+                  }
+                  if (double.tryParse(value) == null) {
+                    return 'Enter a valid price';
                   }
                   return null;
                 },
               ),
               const SizedBox(height: 16),
 
-              // Bouton pour valider l'ajout
+              // Image URL
+              TextFormField(
+                controller: _imageUrlController,
+                decoration: InputDecoration(
+                  labelText: 'Image URL',
+                  labelStyle: TextStyle(color: Colors.blue[800]),
+                  focusedBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: Colors.blue),
+                  ),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter an image URL';
+                  }
+                  // Optional: Add URL validation
+                  if (!value.startsWith('http') && !value.startsWith('https')) {
+                    return 'Enter a valid URL';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+
+              // Submit Button
               ElevatedButton(
                 onPressed: _addItem,
-                child: const Text('Valider'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+                child: const Text('Submit'),
               ),
 
-              // Aperçu de l'image si une URL est saisie
+              // Image Preview if URL is provided
               if (_imageUrlController.text.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(top: 16.0),
@@ -231,7 +276,7 @@ class _ItemDetailState extends State<ItemDetail> {
                     height: 200,
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) =>
-                        const Text('Impossible de charger l\'image'),
+                        const Text('Unable to load image'),
                   ),
                 ),
             ],
