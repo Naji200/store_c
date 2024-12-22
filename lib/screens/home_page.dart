@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:naji_app/screens/add_ithem.dart';
 import 'package:naji_app/screens/itemdetails.dart';
-import 'bar.dart'; // Importer le widget Bar
+import 'bar.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -13,25 +14,86 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final DatabaseReference _database = FirebaseDatabase.instance.ref();
   List<Map<String, dynamic>> _clothingItems = [];
-  int _currentIndex = 0; // Pour suivre la page active
+  int _currentIndex = 0;
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
     _fetchClothingItems();
+
+    // Add a listener to update items in real-time
+    _database.child('clothingItems').onChildAdded.listen((event) {
+      if (mounted) {
+        setState(() {
+          final newItem =
+              Map<String, dynamic>.from(event.snapshot.value as Map);
+          newItem['id'] = event.snapshot.key;
+          _clothingItems.add(newItem);
+        });
+      }
+    });
+
+    // Listener for item changes
+    _database.child('clothingItems').onChildChanged.listen((event) {
+      if (mounted) {
+        setState(() {
+          final changedItem =
+              Map<String, dynamic>.from(event.snapshot.value as Map);
+          changedItem['id'] = event.snapshot.key;
+
+          int index = _clothingItems
+              .indexWhere((item) => item['id'] == event.snapshot.key);
+          if (index != -1) {
+            _clothingItems[index] = changedItem;
+          }
+        });
+      }
+    });
+
+    // Listener for item removals
+    _database.child('clothingItems').onChildRemoved.listen((event) {
+      if (mounted) {
+        setState(() {
+          _clothingItems
+              .removeWhere((item) => item['id'] == event.snapshot.key);
+        });
+      }
+    });
   }
 
   void _fetchClothingItems() async {
-    final snapshot = await _database.child('clothingItems').get();
-    if (snapshot.exists) {
-      final items = Map<String, dynamic>.from(snapshot.value as Map);
+    try {
       setState(() {
-        _clothingItems = items.entries.map((entry) {
-          return {
-            'id': entry.key,
-            ...Map<String, dynamic>.from(entry.value as Map),
-          };
-        }).toList();
+        _isLoading = true;
+      });
+
+      final snapshot = await _database.child('clothingItems').get();
+
+      if (snapshot.exists) {
+        final items = Map<String, dynamic>.from(snapshot.value as Map);
+
+        setState(() {
+          _clothingItems = items.entries.map((entry) {
+            return {
+              'id': entry.key,
+              ...Map<String, dynamic>.from(entry.value as Map),
+            };
+          }).toList();
+
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _clothingItems = [];
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print("Erreur lors de la récupération des articles : $e");
+      setState(() {
+        _clothingItems = [];
+        _isLoading = false;
       });
     }
   }
@@ -41,7 +103,7 @@ class _HomePageState extends State<HomePage> {
       _currentIndex = index;
     });
 
-    // Vous pouvez gérer la navigation en fonction de l'index sélectionné ici
+    // Gérer la navigation si nécessaire
     if (index == 1) {
       // Naviguer vers la page Panier
     } else if (index == 2) {
@@ -55,49 +117,82 @@ class _HomePageState extends State<HomePage> {
       appBar: AppBar(
         title: const Text('Life of Syn'),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _fetchClothingItems,
+          ),
+        ],
       ),
-      body: _clothingItems.isEmpty
+      body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : ListView.builder(
-              itemCount: _clothingItems.length,
-              itemBuilder: (context, index) {
-                final item = _clothingItems[index];
-                return GestureDetector(
-                  // Redirection vers la page de détails de l'article
-                  onTap: () {
-                    print('Item clicked: ${item['title']}');
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            ItemDetailPage(itemId: item['id']),
+          : _clothingItems.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text("Aucun article disponible"),
+                      ElevatedButton(
+                        onPressed: _fetchClothingItems,
+                        child: const Text("Actualiser"),
+                      ),
+                    ],
+                  ),
+                )
+              : ListView.builder(
+                  itemCount: _clothingItems.length,
+                  itemBuilder: (context, index) {
+                    final item = _clothingItems[index];
+                    return GestureDetector(
+                      onTap: () {
+                        print('Item clicked: ${item['title']}');
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                ItemDetailPage(itemId: item['id']),
+                          ),
+                        );
+                      },
+                      child: Card(
+                        margin: const EdgeInsets.all(8.0),
+                        child: ListTile(
+                          leading: Image.network(
+                            item['imageUrl'] ?? '',
+                            fit: BoxFit.cover,
+                            width: 50,
+                            height: 50,
+                            errorBuilder: (context, error, stackTrace) =>
+                                const Icon(Icons.image_not_supported),
+                          ),
+                          title: Text(item['title'] ?? 'No Title'),
+                          subtitle: Text('Taille: ${item['size'] ?? 'N/A'}\n'
+                              'Prix: ${item['price'] ?? 'N/A'} MAD'),
+                        ),
                       ),
                     );
                   },
-                  child: Card(
-                    margin: const EdgeInsets.all(8.0),
-                    child: ListTile(
-                      leading: Image.network(
-                        item['imageUrl'] ?? '',
-                        fit: BoxFit.cover,
-                        width: 50,
-                        height: 50,
-                        errorBuilder: (context, error, stackTrace) =>
-                            const Icon(Icons.image_not_supported),
-                      ),
-                      title: Text(item['title'] ?? 'No Title'),
-                      subtitle: Text(
-                          'Taille: ${item['size'] ?? 'N/A'}\nPrix: ${item['price'] ?? 'N/A'} MAD'),
-                    ),
-                  ),
-                );
-              },
-            ),
+                ),
       bottomNavigationBar: Bar(
-        // Utiliser le widget Bar
         currentIndex: _currentIndex,
         onTap: _onNavItemTapped,
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const ItemDetail()),
+          ).then((_) =>
+              _fetchClothingItems()); // Refresh after returning from add item page
+        },
+        child: const Icon(Icons.add),
+      ),
     );
+  }
+
+  @override
+  void dispose() {
+    // Optional: Cancel any listeners if needed
+    super.dispose();
   }
 }
