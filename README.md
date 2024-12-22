@@ -1,5 +1,5 @@
 # naji_app
-
+## To login use (naji@gmail.com     123456)
 
 ## Overview
 This Flutter application provides a streamlined shopping cart system where users can add items to their cart, view item details, and manage their cart contents. If a user adds the same item multiple times, the app increments the item's quantity instead of duplicating it.
