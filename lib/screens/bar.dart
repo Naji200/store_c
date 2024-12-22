@@ -50,10 +50,6 @@ class Bar extends StatelessWidget {
           icon: Icon(Icons.person),
           label: 'Profil',
         ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.add),
-          label: 'ajouter',
-        ),
       ],
       selectedItemColor: Colors.blue,
       unselectedItemColor: Colors.grey,
